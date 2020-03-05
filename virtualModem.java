@@ -5,10 +5,10 @@ import java.util.HashMap;
 
 public class virtualModem {
 
-    static String echo_request_code = "E1322\r";
+    static String echo_request_code = "E6741\r";
     static String image_request_code = "M9974\r";
     static String image_request_code_with_errors = "G1491\r";
-    static String gps_request_code = "P1215";
+    static String gps_request_code = "P9256";
 
     
 
@@ -16,7 +16,7 @@ public class virtualModem {
         String command;
 
         Modem modem = new Modem();
-        modem.setSpeed(1000);
+        modem.setSpeed(8000);
         modem.setTimeout(2000);
 
         modem.open("ithaki");
@@ -25,7 +25,8 @@ public class virtualModem {
         echo(modem);
         // image_with_errors(modem);
         command = gps_parse(modem);
-        System.out.println(command);
+        echo(modem);
+        // System.out.println(command);
         gps_image(modem, command);
 
         modem.close();
@@ -194,6 +195,7 @@ public class virtualModem {
             System.out.println(i + ": " + points.get(i));
         }
         command += "\r";
+        modem.setTimeout(20000);
 
         return command;
 
@@ -203,7 +205,7 @@ public class virtualModem {
         int k;
 
         //Send it to server and listen for the answer
-        command = "P1215T=225733403737\r";
+        command = "P9256T=225733403737\r";
         System.out.println(command);
         byte[] bytes = command.getBytes();
         modem.write(bytes);
@@ -224,13 +226,15 @@ public class virtualModem {
                 k = modem.read();
                 if(k == -1) break;
                 System.out.println((char)k);
-                // image.write(k);
+                image.write(k);
             } catch (Exception e) {
                 System.out.println(e.toString());
                 break;
             }
         }
+        modem.setTimeout(2000);
     }
+    
 
 
 }
