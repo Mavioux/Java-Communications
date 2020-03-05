@@ -1,14 +1,17 @@
 import java.io.File;
 import java.io.FileOutputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 
 public class virtualModem {
 
-    static String echo_request_code = "E6741\r";
+    static String echo_request_code = "E2966\r";
     static String image_request_code = "M9974\r";
     static String image_request_code_with_errors = "G1491\r";
     static String gps_request_code = "P9256";
+    static String ack_request_code = "Q2178\r";
+    static String nack_request_code = "R0787\r";
 
     
 
@@ -24,27 +27,13 @@ public class virtualModem {
         // demo(modem);
         echo(modem);
         // image_with_errors(modem);
-        command = gps_parse(modem);
-        echo(modem);
+        // command = gps_parse(modem);
+        // echo(modem);
         // System.out.println(command);
-        gps_image(modem, command);
+        // gps_image(modem, command);
+        encrypted_message(modem);
 
         modem.close();
-    }
-
-    public static void demo(Modem modem) {
-        int k;
-
-        for(;;) {
-            try {
-                k = modem.read();
-                if(k == -1) break;
-                System.out.print((char)k);
-            } catch (Exception e) {
-                System.out.println(e.toString());
-                break;
-            }
-        }
     }
 
     public static void echo(Modem modem) {
@@ -62,6 +51,7 @@ public class virtualModem {
                 break;
             }
         }
+        System.out.println();
     }
 
     public static void image(Modem modem) {
@@ -234,6 +224,53 @@ public class virtualModem {
         }
         modem.setTimeout(2000);
     }
+
+    public static void encrypted_message(Modem modem) {
+        int k;
+        byte[] bytes = ack_request_code.getBytes();
+        modem.write(bytes);
+        int[] message = new int[16];
+        int[] fcs = new int[3];
+        int sum = 0;
+
+        int counter = 0;
+        int message_counter = 0;
+        int fcs_counter = 0;
+        for(;;) {
+            try {
+                k = modem.read();
+                if(k == -1) break;
+                System.out.print((char)k);
+                if(counter > 30 && counter < 47) {
+                    // System.out.println("mphka sto message me counter " + counter);
+                    message[message_counter] = k;
+                    message_counter++;
+                }
+                if (counter > 48 && counter < 52) {
+                    // System.out.println("mphka sto fcs me counter " + counter);
+                    fcs[fcs_counter] = (char)k;
+                    fcs_counter++;
+                }
+                counter++;
+                // System.out.println(counter);
+            } catch (Exception e) {
+                System.out.println(e.toString());
+                break;
+            }
+        }
+        System.out.println();
+        System.out.println(Arrays.toString(message));
+        System.out.println(Arrays.toString(fcs));
+
+        //check if we have the right message
+        sum = message[0];
+        for(int i = 1; i < message.length; i++) {
+            sum = (sum ^ message[i]);
+        }
+        System.out.println(sum);
+    }
+
+    
     
 
 
