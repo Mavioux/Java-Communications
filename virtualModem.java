@@ -6,12 +6,12 @@ import java.util.HashMap;
 
 public class virtualModem {
 
-    static String echo_request_code = "E2966\r";
+    static String echo_request_code = "E4777\r";
     static String image_request_code = "M9974\r";
     static String image_request_code_with_errors = "G1491\r";
     static String gps_request_code = "P9256";
-    static String ack_request_code = "Q2178\r";
-    static String nack_request_code = "R0787\r";
+    static String ack_request_code = "Q0321\r";
+    static String nack_request_code = "R7906\r";
 
     
 
@@ -227,15 +227,21 @@ public class virtualModem {
 
     public static void encrypted_message(Modem modem) {
         int k;
+
         byte[] bytes = ack_request_code.getBytes();
         modem.write(bytes);
         int[] message = new int[16];
-        int[] fcs = new int[3];
-        int sum = 0;
+        int[] transmit_fcs = new int[3];
+        int receive_fcs = 0;
+        String fcsString = "";
+        int fcsInt;
 
         int counter = 0;
         int message_counter = 0;
         int fcs_counter = 0;
+
+    
+        //ask for the initial ack command
         for(;;) {
             try {
                 k = modem.read();
@@ -248,7 +254,8 @@ public class virtualModem {
                 }
                 if (counter > 48 && counter < 52) {
                     // System.out.println("mphka sto fcs me counter " + counter);
-                    fcs[fcs_counter] = (char)k;
+                    transmit_fcs[fcs_counter] = (char)k;
+                    fcsString += (char)k;
                     fcs_counter++;
                 }
                 counter++;
@@ -260,14 +267,75 @@ public class virtualModem {
         }
         System.out.println();
         System.out.println(Arrays.toString(message));
-        System.out.println(Arrays.toString(fcs));
+        System.out.println(Arrays.toString(transmit_fcs));
 
         //check if we have the right message
-        sum = message[0];
+        receive_fcs = message[0];
         for(int i = 1; i < message.length; i++) {
-            sum = (sum ^ message[i]);
+            receive_fcs = (receive_fcs ^ message[i]);
         }
-        System.out.println(sum);
+
+        //Cast fcsString to fcsInt
+        fcsInt = Integer.parseInt(fcsString);
+        System.out.println("Sum " + receive_fcs);
+        System.out.println("fcs " + fcsInt);
+
+
+        //Compare the sum with the fcs
+        while(receive_fcs != fcsInt) {
+            System.out.println("We received the wrong package");
+            //Send a nack request and do the same analysis until sum == fcsInt
+            bytes = nack_request_code.getBytes();
+            modem.write(bytes);
+
+            //Reset the variables
+            fcsString = "";
+            counter = 0;
+            message_counter = 0;
+            fcs_counter = 0;
+
+        
+            //ask for the initial ack command
+            for(;;) {
+                try {
+                    k = modem.read();
+                    if(k == -1) break;
+                    System.out.print((char)k);
+                    if(counter > 30 && counter < 47) {
+                        // System.out.println("mphka sto message me counter " + counter);
+                        message[message_counter] = k;
+                        message_counter++;
+                    }
+                    if (counter > 48 && counter < 52) {
+                        // System.out.println("mphka sto fcs me counter " + counter);
+                        transmit_fcs[fcs_counter] = (char)k;
+                        fcsString += (char)k;
+                        fcs_counter++;
+                    }
+                    counter++;
+                    // System.out.println(counter);
+                } catch (Exception e) {
+                    System.out.println(e.toString());
+                    break;
+                }
+            }
+            System.out.println();
+            System.out.println(Arrays.toString(message));
+            System.out.println(Arrays.toString(transmit_fcs));
+
+            //check if we have the right message
+            receive_fcs = message[0];
+            for(int i = 1; i < message.length; i++) {
+                receive_fcs = (receive_fcs ^ message[i]);
+            }
+
+            //Cast fcsString to fcsInt
+            fcsInt = Integer.parseInt(fcsString);
+            System.out.println("Sum " + receive_fcs);
+            System.out.println("fcs " + fcsInt);
+
+            }
+        
     }
 
     
