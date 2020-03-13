@@ -10,18 +10,19 @@ import java.lang.System;
 
 public class virtualModem {
 
-    static String echo_request_code = "E0818\r";
-    static String image_request_code = "M9974\r";
-    static String image_request_code_with_errors = "G1491\r";
-    static String gps_request_code = "P9256";
-    static String ack_request_code = "Q8054\r";
-    static String nack_request_code = "R4191\r";
+    static String echo_request_code = "E6936\r";
+    static String image_request_code = "M7065\r";
+    static String image_request_code_with_errors = "G6538\r";
+    static String gps_request_code = "P1170";
+    static String ack_request_code = "Q5184\r";
+    static String nack_request_code = "R1877\r";
 
     
 
     public static void main(String[] param) {
         long startTime;
         long echoDurationInMins = 5;
+        long ackNackDurationInMins = 5;
         String command;
         
         String echoOutput = "";
@@ -38,47 +39,50 @@ public class virtualModem {
         echo(modem);
 
 
-        // /*########### ECHO  REQUEST ###############*/
-        // //Echo Requests for echoDurationInMins time
-        // startTime = System.currentTimeMillis();
+        /*########### ECHO  REQUEST ###############*/
+        //Echo Requests for echoDurationInMins time
+        startTime = System.currentTimeMillis();
 
-        // while (System.currentTimeMillis() - startTime < echoDurationInMins * 60 * 1000) {
+        while (System.currentTimeMillis() - startTime < echoDurationInMins * 60 * 1000) {
             
-        //    echoOutput += echo(modem);
-        // }
+           echoOutput += echo(modem);
+        }
         
-        // System.out.println(echoOutput);
+        System.out.println(echoOutput);
 
-        // //Save echoOutput on a txt file
-        // try (PrintWriter out = new PrintWriter("echoResponseTime.txt")) {
-        //     out.println(echoOutput);
-        // }catch (Exception e) {
-        //     System.out.println(e.toString());
-        // } 
+        //Save echoOutput on a txt file
+        try (PrintWriter out = new PrintWriter("echoResponseTime.txt")) {
+            out.println(echoOutput);
+        }catch (Exception e) {
+            System.out.println(e.toString());
+        } 
         
+
+        /*########### IMAGE ###############*/
+        image(modem);
 
         /*########### IMAGE WITH ERRORS ###############*/
-        // image_with_errors(modem);
+        image_with_errors(modem);
 
 
         /*########### GPS ###############*/
-        // command = gps_parse(modem);
-        // echo(modem);
-        // System.out.println(command);
-        // gps_image(modem, command);
+        command = gps_parse(modem);
+        echo(modem);
+        System.out.println(command);
+        gps_image(modem, command);
 
 
         /*########### ACK NACK REQUEST ###############*/
         startTime = System.currentTimeMillis();
 
-        while (System.currentTimeMillis() - startTime < 0.3 * 60 * 1000) {
+        while (System.currentTimeMillis() - startTime < ackNackDurationInMins * 60 * 1000) {
             
            encryptedOutput += encrypted_message(modem);
         }
 
         System.out.println(encryptedOutput);
 
-        //Save echoOutput on a txt file
+        //Save encryptedOutput on a txt file
         try (PrintWriter out = new PrintWriter("ackNackResponseTime.txt")) {
             out.println(encryptedOutput);
         }catch (Exception e) {
@@ -252,7 +256,7 @@ public class virtualModem {
             System.out.println(i + ": " + points.get(i));
         }
         command += "\r";
-        modem.setTimeout(20000);
+        // modem.setTimeout(20000); //needless
 
         return command;
 
@@ -262,7 +266,6 @@ public class virtualModem {
         int k;
 
         //Send it to server and listen for the answer
-        command = "P9256T=225733403737\r";
         System.out.println(command);
         byte[] bytes = command.getBytes();
         modem.write(bytes);
@@ -289,7 +292,7 @@ public class virtualModem {
                 break;
             }
         }
-        modem.setTimeout(2000);
+        // modem.setTimeout(2000);  //needless
     }
 
     public static String encrypted_message(Modem modem) {
