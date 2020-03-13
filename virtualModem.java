@@ -1,8 +1,10 @@
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+
 import java.time.LocalDate;
 import java.lang.System;
 
@@ -12,8 +14,8 @@ public class virtualModem {
     static String image_request_code = "M9974\r";
     static String image_request_code_with_errors = "G1491\r";
     static String gps_request_code = "P9256";
-    static String ack_request_code = "Q0321\r";
-    static String nack_request_code = "R7906\r";
+    static String ack_request_code = "Q8054\r";
+    static String nack_request_code = "R4191\r";
 
     
 
@@ -23,7 +25,9 @@ public class virtualModem {
         String command;
         
         String echoOutput = "";
+        String encryptedOutput = "";
 
+        /*########### SETUP CONNECTION ###############*/
         Modem modem = new Modem();
         modem.setSpeed(80000);
         modem.setTimeout(2000);
@@ -34,23 +38,54 @@ public class virtualModem {
         echo(modem);
 
 
-        startTime = System.currentTimeMillis();
+        // /*########### ECHO  REQUEST ###############*/
+        // //Echo Requests for echoDurationInMins time
+        // startTime = System.currentTimeMillis();
 
-        while (System.currentTimeMillis() - startTime < echoDurationInMins * 60 * 1000) {
+        // while (System.currentTimeMillis() - startTime < echoDurationInMins * 60 * 1000) {
             
-           echoOutput += echo(modem);
-        }
+        //    echoOutput += echo(modem);
+        // }
         
-        System.out.println(echoOutput);
+        // System.out.println(echoOutput);
+
+        // //Save echoOutput on a txt file
+        // try (PrintWriter out = new PrintWriter("echoResponseTime.txt")) {
+        //     out.println(echoOutput);
+        // }catch (Exception e) {
+        //     System.out.println(e.toString());
+        // } 
         
-        
+
+        /*########### IMAGE WITH ERRORS ###############*/
         // image_with_errors(modem);
+
+
+        /*########### GPS ###############*/
         // command = gps_parse(modem);
         // echo(modem);
         // System.out.println(command);
         // gps_image(modem, command);
-        // encrypted_message(modem);
 
+
+        /*########### ACK NACK REQUEST ###############*/
+        startTime = System.currentTimeMillis();
+
+        while (System.currentTimeMillis() - startTime < 0.3 * 60 * 1000) {
+            
+           encryptedOutput += encrypted_message(modem);
+        }
+
+        System.out.println(encryptedOutput);
+
+        //Save echoOutput on a txt file
+        try (PrintWriter out = new PrintWriter("ackNackResponseTime.txt")) {
+            out.println(encryptedOutput);
+        }catch (Exception e) {
+            System.out.println(e.toString());
+        } 
+        
+        /*########### CLOSE CONNECTION ###############*/
         modem.close();
     }
 
@@ -150,10 +185,11 @@ public class virtualModem {
         int k;
         String command = gps_request_code + "R=1006950\r";
         byte[] bytes = command.getBytes();
-        modem.write(bytes);
         ArrayList<String> returnedCoordinates = new ArrayList<String>();
         HashMap<Integer, String> points = new HashMap<Integer, String>();
         String tempCoords = "";
+
+        modem.write(bytes);
 
         for(;;) {
             try {
@@ -256,11 +292,13 @@ public class virtualModem {
         modem.setTimeout(2000);
     }
 
-    public static void encrypted_message(Modem modem) {
+    public static String encrypted_message(Modem modem) {
         int k;
+        long startTime = 0;
+        long endTime = 0;
+        int retries = 0;
+        String output = "";
 
-        byte[] bytes = ack_request_code.getBytes();
-        modem.write(bytes);
         int[] message = new int[16];
         int[] transmit_fcs = new int[3];
         int receive_fcs = 0;
@@ -271,6 +309,10 @@ public class virtualModem {
         int message_counter = 0;
         int fcs_counter = 0;
 
+        byte[] bytes = ack_request_code.getBytes();
+        startTime = System.currentTimeMillis();
+        modem.write(bytes);
+
     
         //ask for the initial ack command
         for(;;) {
@@ -278,6 +320,10 @@ public class virtualModem {
                 k = modem.read();
                 if(k == -1) break;
                 System.out.print((char)k);
+                output += (char)k;
+                if(output.contains("PSTOP")) {
+                    endTime = System.currentTimeMillis();
+                }
                 if(counter > 30 && counter < 47) {
                     // System.out.println("mphka sto message me counter " + counter);
                     message[message_counter] = k;
@@ -312,8 +358,10 @@ public class virtualModem {
         System.out.println("fcs " + fcsInt);
 
 
-        //Compare the sum with the fcs
+        //Compare the sum with the fcs and if they are not equal send a nack request
         while(receive_fcs != fcsInt) {
+            //Every time fcs is not the same with received_fcs we have a retry
+            retries++;
             System.out.println("We received the wrong package");
             //Send a nack request and do the same analysis until sum == fcsInt
             bytes = nack_request_code.getBytes();
@@ -324,14 +372,19 @@ public class virtualModem {
             counter = 0;
             message_counter = 0;
             fcs_counter = 0;
+            output = "";
 
         
-            //ask for the initial ack command
+            //Read the response from the nack request
             for(;;) {
                 try {
                     k = modem.read();
                     if(k == -1) break;
                     System.out.print((char)k);
+                    output += (char)k;
+                    if(output.contains("PSTOP")) {
+                        endTime = System.currentTimeMillis();
+                    }
                     if(counter > 30 && counter < 47) {
                         // System.out.println("mphka sto message me counter " + counter);
                         message[message_counter] = k;
@@ -365,7 +418,12 @@ public class virtualModem {
             System.out.println("Sum " + receive_fcs);
             System.out.println("fcs " + fcsInt);
 
-            }
+        }
+
+        output += " Start Time in ms: " + startTime + " End Time in ms: " + endTime + " Response Time:" + (endTime - startTime) + " Retries: " + retries + "\n";
+        return output;
+
+            
         
     }
 
