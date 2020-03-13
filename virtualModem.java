@@ -3,10 +3,12 @@ import java.io.FileOutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.time.LocalDate;
+import java.lang.System;
 
 public class virtualModem {
 
-    static String echo_request_code = "E4777\r";
+    static String echo_request_code = "E0818\r";
     static String image_request_code = "M9974\r";
     static String image_request_code_with_errors = "G1491\r";
     static String gps_request_code = "P9256";
@@ -16,42 +18,71 @@ public class virtualModem {
     
 
     public static void main(String[] param) {
+        long startTime;
+        long echoDurationInMins = 5;
         String command;
+        
+        String echoOutput = "";
 
         Modem modem = new Modem();
-        modem.setSpeed(8000);
+        modem.setSpeed(80000);
         modem.setTimeout(2000);
 
         modem.open("ithaki");
 
-        // demo(modem);
+        //A simple echo to trigger the initial greeting from ithaki
         echo(modem);
+
+
+        startTime = System.currentTimeMillis();
+
+        while (System.currentTimeMillis() - startTime < echoDurationInMins * 60 * 1000) {
+            
+           echoOutput += echo(modem);
+        }
+        
+        System.out.println(echoOutput);
+        
+        
         // image_with_errors(modem);
         // command = gps_parse(modem);
         // echo(modem);
         // System.out.println(command);
         // gps_image(modem, command);
-        encrypted_message(modem);
+        // encrypted_message(modem);
 
         modem.close();
     }
 
-    public static void echo(Modem modem) {
+    public static String echo(Modem modem) {
         int k;
+        long start = 0;
+        long end = 0;
         byte[] bytes = echo_request_code.getBytes();
+        start = System.currentTimeMillis();
         modem.write(bytes);
+
+        String output = "";
 
         for(;;) {
             try {
                 k = modem.read();
                 if(k == -1) break;
                 System.out.print((char)k);
+                output += (char)k;
+                if(output.contains("PSTOP")) {
+                    end = System.currentTimeMillis();
+                }
             } catch (Exception e) {
                 System.out.println(e.toString());
                 break;
             }
         }
         System.out.println();
+
+        output += " Start Time in ms: " + start + " End Time in ms: " + end + " Response Time:" + (end - start) + "\n";
+
+        return output;
     }
 
     public static void image(Modem modem) {
