@@ -10,12 +10,12 @@ import java.lang.System;
 
 public class virtualModem {
 
-    static String echo_request_code = "E1749\r";
-    static String image_request_code = "M3951\r";
-    static String image_request_code_with_errors = "G2612\r";
-    static String gps_request_code = "P5346";
-    static String ack_request_code = "Q3401\r";
-    static String nack_request_code = "R1733\r";
+    static String echo_request_code = "E8730\r";
+    static String image_request_code = "M5527\r";
+    static String image_request_code_with_errors = "G2514\r";
+    static String gps_request_code = "P8700";
+    static String ack_request_code = "Q8249\r";
+    static String nack_request_code = "R3226\r";
 
     
 
@@ -24,6 +24,7 @@ public class virtualModem {
         long echoDurationInMins = 5;
         long ackNackDurationInMins = 5;
         String command;
+        int packetCounter = 0;
         
         String echoOutput = "";
         String encryptedOutput = "";
@@ -36,22 +37,24 @@ public class virtualModem {
         modem.open("ithaki");
 
         //A simple echo to trigger the initial greeting from ithaki
-        echo(modem);
+        echo(0, modem);
 
 
         /*########### ECHO  REQUEST ###############*/
         //Echo Requests for echoDurationInMins time
         startTime = System.currentTimeMillis();
 
+        packetCounter = 1;
         while (System.currentTimeMillis() - startTime < echoDurationInMins * 60 * 1000) {
             
-           echoOutput += echo(modem);
+           echoOutput += echo(packetCounter, modem);
+           packetCounter++;
         }
         
         System.out.println(echoOutput);
 
-        //Save echoOutput on a txt file
-        try (PrintWriter out = new PrintWriter("echoResponseTime.txt")) {
+        //Save echoOutput on a csv file
+        try (PrintWriter out = new PrintWriter("echoResponseTime.csv")) {
             out.println(echoOutput);
         }catch (Exception e) {
             System.out.println(e.toString());
@@ -60,15 +63,17 @@ public class virtualModem {
         /*########### ACK NACK REQUEST ###############*/
         startTime = System.currentTimeMillis();
 
+        packetCounter = 1;
         while (System.currentTimeMillis() - startTime < ackNackDurationInMins * 60 * 1000) {
             
-           encryptedOutput += encrypted_message(modem);
+           encryptedOutput += encrypted_message(packetCounter, modem);
+           packetCounter++;
         }
 
         System.out.println(encryptedOutput);
 
-        //Save encryptedOutput on a txt file
-        try (PrintWriter out = new PrintWriter("ackNackResponseTime.txt")) {
+        //Save encryptedOutput on a csv file
+        try (PrintWriter out = new PrintWriter("ackNackResponseTime.csv")) {
             out.println(encryptedOutput);
         }catch (Exception e) {
             System.out.println(e.toString());
@@ -82,7 +87,7 @@ public class virtualModem {
 
         /*########### GPS ###############*/
         command = gps_parse(modem);
-        echo(modem);
+        echo(0, modem);
         System.out.println(command);
         gps_image(modem, command);
 
@@ -92,7 +97,7 @@ public class virtualModem {
         modem.close();
     }
 
-    public static String echo(Modem modem) {
+    public static String echo(int packetNumber, Modem modem) {
         int k;
         long start = 0;
         long end = 0;
@@ -118,7 +123,8 @@ public class virtualModem {
         }
         System.out.println();
 
-        output += " Start Time in ms: " + start + " End Time in ms: " + end + " Response Time:" + (end - start) + "\n";
+        // output += " Start Time in ms: " + start + " End Time in ms: " + end + " Response Time:" + (end - start) + "\n";
+        output += "," + "Packet " + packetNumber + "," + (end - start) + "," + "\n";
 
         return output;
     }
@@ -294,7 +300,7 @@ public class virtualModem {
         // modem.setTimeout(2000);  //needless
     }
 
-    public static String encrypted_message(Modem modem) {
+    public static String encrypted_message(int packetNumber, Modem modem) {
         int k;
         long startTime = 0;
         long endTime = 0;
@@ -422,7 +428,8 @@ public class virtualModem {
 
         }
 
-        output += " Start Time in ms: " + startTime + " End Time in ms: " + endTime + " Response Time:" + (endTime - startTime) + " Retries: " + retries + "\n";
+        // output += " Start Time in ms: " + startTime + " End Time in ms: " + endTime + " Response Time:" + (endTime - startTime) + " Retries: " + retries + "\n";
+        output += "," + "Packet " + packetNumber + "," + (endTime - startTime) + "," + " Retries: " + retries + "," + "\n";
         return output;
 
             
