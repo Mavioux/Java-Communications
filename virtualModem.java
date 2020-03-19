@@ -10,12 +10,12 @@ import java.lang.System;
 
 public class virtualModem {
 
-    static String echo_request_code = "E6936\r";
-    static String image_request_code = "M7065\r";
-    static String image_request_code_with_errors = "G6538\r";
-    static String gps_request_code = "P1170";
-    static String ack_request_code = "Q5184\r";
-    static String nack_request_code = "R1877\r";
+    static String echo_request_code = "E1749\r";
+    static String image_request_code = "M3951\r";
+    static String image_request_code_with_errors = "G2612\r";
+    static String gps_request_code = "P5346";
+    static String ack_request_code = "Q3401\r";
+    static String nack_request_code = "R1733\r";
 
     
 
@@ -56,21 +56,6 @@ public class virtualModem {
         }catch (Exception e) {
             System.out.println(e.toString());
         } 
-        
-
-        /*########### IMAGE ###############*/
-        image(modem);
-
-        /*########### IMAGE WITH ERRORS ###############*/
-        image_with_errors(modem);
-
-
-        /*########### GPS ###############*/
-        command = gps_parse(modem);
-        echo(modem);
-        System.out.println(command);
-        gps_image(modem, command);
-
 
         /*########### ACK NACK REQUEST ###############*/
         startTime = System.currentTimeMillis();
@@ -87,7 +72,21 @@ public class virtualModem {
             out.println(encryptedOutput);
         }catch (Exception e) {
             System.out.println(e.toString());
-        } 
+        }         
+
+        /*########### IMAGE ###############*/
+        image(modem);
+
+        /*########### IMAGE WITH ERRORS ###############*/
+        image_with_errors(modem);
+
+        /*########### GPS ###############*/
+        command = gps_parse(modem);
+        echo(modem);
+        System.out.println(command);
+        gps_image(modem, command);
+
+
         
         /*########### CLOSE CONNECTION ###############*/
         modem.close();
