@@ -10,12 +10,12 @@ import java.lang.System;
 
 public class virtualModem {
 
-    static String echo_request_code = "E8730\r";
-    static String image_request_code = "M5527\r";
-    static String image_request_code_with_errors = "G2514\r";
-    static String gps_request_code = "P8700";
-    static String ack_request_code = "Q8249\r";
-    static String nack_request_code = "R3226\r";
+    static String echo_request_code = "E6966\r";
+    static String image_request_code = "M1385\r";
+    static String image_request_code_with_errors = "G6677\r";
+    static String gps_request_code = "P8601";
+    static String ack_request_code = "Q5230\r";
+    static String nack_request_code = "R4802\r";
 
     
 
@@ -161,7 +161,7 @@ public class virtualModem {
 
     public static void image_with_errors(Modem modem) {
         int k;
-        byte[] bytes = image_request_code.getBytes();
+        byte[] bytes = image_request_code_with_errors.getBytes();
         modem.write(bytes);
         
         File file = null;
@@ -429,7 +429,7 @@ public class virtualModem {
         }
 
         // output += " Start Time in ms: " + startTime + " End Time in ms: " + endTime + " Response Time:" + (endTime - startTime) + " Retries: " + retries + "\n";
-        output += "," + "Packet " + packetNumber + "," + (endTime - startTime) + "," + " Retries: " + retries + "," + "\n";
+        output += "," + "Packet " + packetNumber + "," + (endTime - startTime) + "," + " Retries:, " + retries + "," + "\n";
         return output;
 
             
